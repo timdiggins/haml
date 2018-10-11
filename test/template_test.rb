@@ -326,11 +326,29 @@ HTML
 HAML
   end
 
-  class ::TosUnsafeObject; def to_s; '<hr>'; end; end
-  class ::TosSafeObject; def to_s; '<hr>'.html_safe; end; end
+  class ::TosUnsafeObject; def to_s; '<hr>'; end; alias_method :to_str, :to_s; end
+  class ::TosSafeObject; def to_s; '<hr>'.html_safe; end; alias_method :to_str, :to_s; end
 
   def test_object_that_returns_safe_buffer
     assert_equal("<hr>\n", render('= ::TosSafeObject.new', escape_html: true))
     assert_equal("&lt;hr&gt;\n", render('= ::TosUnsafeObject.new', escape_html: true))
+  end
+
+  class ::TosSafeObjectWithApostrophe; def to_s; 'I\'m'.html_safe; end; alias_method :to_str, :to_s; end
+
+  EXPECTED_OUTPUT_WITH_APOSTROPHE =  "<div content='I&#39;m'>whatever</div>\n"
+
+  def test_attribute_with_apostrophe_in_string
+    assert_equal(EXPECTED_OUTPUT_WITH_APOSTROPHE, render('%div{content: "I\'m"} whatever'))
+  end
+
+  def test_attribute_with_apostrophe_in_safe_buffer
+    assert_equal(EXPECTED_OUTPUT_WITH_APOSTROPHE, render('%div{content: ::TosSafeObjectWithApostrophe.new} whatever', escape_html: true))
+  end
+
+  EXPECTED_OUTPUT_WITH_TAG =  "<div content='<hr>'>whatever</div>\n"
+
+  def test_attribute_with_tag_in_safe_buffer
+    assert_equal(EXPECTED_OUTPUT_WITH_TAG, render('%div{content: ::TosSafeObject.new} whatever', escape_html: true))
   end
 end
